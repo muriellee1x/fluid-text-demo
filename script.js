@@ -34,6 +34,12 @@ const pointer = {
     moved: false,
 };
 
+const interactionState = {
+    lastInteractionTime: Date.now(),
+    previewDelay: 1000, // 3秒后重启预览
+    previewStartTime: 0, // 记录预览动画开始时间，用于重置动画状态
+};
+
 
 let outputColor, velocity, divergence, pressure, canvasTexture;
 let isPreview = true;
@@ -108,22 +114,50 @@ function createTextCanvasTexture() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
+// function updateTextCanvas() {
+//     textureCtx.fillStyle = "black";
+//     textureCtx.fillRect(0, 0, textureEl.width, textureEl.height);
+
+//     textureCtx.font = (params.isBold ? "bold" : "normal") + " " + (params.fontSize * devicePixelRatio) + "px " + fontOptions[params.fontName];
+//     textureCtx.fillStyle = "#ffffff";
+//     textureCtx.textAlign = "center";
+
+//     textureCtx.filter = "blur(3px)";
+
+//     const textBox = textureCtx.measureText(params.text);
+//     textureCtx.fillText(params.text, .5 * textureEl.width, .5 * textureEl.height + .5 * textBox.actualBoundingBoxAscent);
+
+//     gl.activeTexture(gl.TEXTURE0);
+//     gl.bindTexture(gl.TEXTURE_2D, canvasTexture);
+//     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureEl);
+// }
+
 function updateTextCanvas() {
-    textureCtx.fillStyle = "black";
-    textureCtx.fillRect(0, 0, textureEl.width, textureEl.height);
+    // 清空画布
+    textureCtx.clearRect(0, 0, textureEl.width, textureEl.height);
 
-    textureCtx.font = (params.isBold ? "bold" : "normal") + " " + (params.fontSize * devicePixelRatio) + "px " + fontOptions[params.fontName];
-    textureCtx.fillStyle = "#ffffff";
-    textureCtx.textAlign = "center";
+    // 加载并绘制 SVG 图像
+    const img = new Image();
+    img.src = 'logo.svg'; // 替换为您的 SVG 文件路径
+    img.onload = () => {
+        const logoWidth = window.innerWidth * 0.75; // 80% 的视口宽度
+        const aspectRatio = img.height / img.width; // 计算图像的宽高比
+        const logoHeight = logoWidth * aspectRatio; // 根据宽高比计算高度
 
-    textureCtx.filter = "blur(3px)";
+        // 计算居中位置
+        const x = (textureEl.width - logoWidth) / 2; // 横向居中
+        const y = (textureEl.height - logoHeight) / 2; // 纵向居中
 
-    const textBox = textureCtx.measureText(params.text);
-    textureCtx.fillText(params.text, .5 * textureEl.width, .5 * textureEl.height + .5 * textBox.actualBoundingBoxAscent);
+        // 设置模糊效果
+        textureCtx.filter = "blur(2px)";
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, canvasTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureEl);
+        // 绘制图像
+        textureCtx.drawImage(img, x, y, logoWidth, logoHeight);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, canvasTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureEl);
+    };
+        
 }
 
 function createProgram(elId) {
@@ -213,7 +247,7 @@ function createFBO(w, h, type = gl.RGBA) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
     gl.viewport(0, 0, w, h);
-    gl.clearColor(0.0, 0.0, 0.0, 0.0);  // 添加这行，设置清除颜色为完全透明
+    // gl.clearColor(0.0, 0.0, 0.0, 0.0);  // 添加这行，设置清除颜色为完全透明
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     return {
@@ -325,14 +359,29 @@ function createDoubleFBO(w, h, type) {
 
 function render(t) {
 
-    const dt = 1 / 60;
+    const dt = 1 / 120;
+    const currentTime = Date.now();
+
+    if (!isPreview && (currentTime - interactionState.lastInteractionTime > interactionState.previewDelay)) {
+        isPreview = true;
+        interactionState.previewStartTime = t; // 记录动画重启时的时间戳
+    }
 
     if (t && isPreview) {
+        // 调整时间偏移，使动画从初始位置重新开始
+        const adjustedTime = t - interactionState.previewStartTime;
         updateMousePosition(
-            (.5 - .45 * Math.sin(.003 * t - 2)) * window.innerWidth,
-            (.5 + .1 * Math.sin(.0025 * t) + .1 * Math.cos(.002 * t)) * window.innerHeight
+            (.5 - .6 * Math.sin(.002 * adjustedTime - 2)) * window.innerWidth,
+            (.5 + .15 * Math.sin(.001 * adjustedTime) + .1 * Math.cos(.002 * adjustedTime)) * window.innerHeight
         );
     }
+
+    // if (t && isPreview) {
+    //     updateMousePosition(
+    //         (.5 - .45 * Math.sin(.003 * t - 2)) * window.innerWidth,
+    //         (.5 + .1 * Math.sin(.0025 * t) + .1 * Math.cos(.002 * t)) * window.innerHeight
+    //     );
+    // }
 
     if (pointer.moved) {
         if (!isPreview) {
@@ -363,9 +412,11 @@ function render(t) {
         // 找到最大值并将其设置为1
         const maxColorValue = Math.max(currentColor.r, currentColor.g, currentColor.b);
         if (maxColorValue > 0) { // 确保最大值不为0
-            currentColor.r /= maxColorValue;
-            currentColor.g /= maxColorValue;
-            currentColor.b /= maxColorValue;
+            // 确保最大值不为1
+            const normalizationFactor = Math.min(maxColorValue, 1);
+            currentColor.r /= normalizationFactor;
+            currentColor.g /= normalizationFactor;
+            currentColor.b /= normalizationFactor;
         }
 
         gl.uniform3f(splatProgram.uniforms.u_point_value, 1. - currentColor.r, 1. - currentColor.g, 1. - currentColor.b);
@@ -426,7 +477,7 @@ function render(t) {
 }
 
 function resizeCanvas() {
-    params.pointerSize = 4 / window.innerHeight;
+    params.pointerSize = 2 / window.innerHeight;
     canvasEl.width = textureEl.width = window.innerWidth;
     canvasEl.height = textureEl.height = window.innerHeight;
 	 initFBOs();
@@ -434,14 +485,26 @@ function resizeCanvas() {
 }
 
 function setupEvents() {
+    // canvasEl.addEventListener("mousemove", (e) => {
+    //     isPreview = false;
+    //     updateMousePosition(e.pageX, e.pageY);
+    // });
+
+    // canvasEl.addEventListener("touchmove", (e) => {
+    //     e.preventDefault();
+    //     isPreview = false;
+    //     updateMousePosition(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
+    // });
     canvasEl.addEventListener("mousemove", (e) => {
         isPreview = false;
+        interactionState.lastInteractionTime = Date.now();
         updateMousePosition(e.pageX, e.pageY);
     });
 
     canvasEl.addEventListener("touchmove", (e) => {
         e.preventDefault();
         isPreview = false;
+        interactionState.lastInteractionTime = Date.now();
         updateMousePosition(e.targetTouches[0].pageX, e.targetTouches[0].pageY);
     });
 }
