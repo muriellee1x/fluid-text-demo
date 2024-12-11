@@ -17,11 +17,13 @@ const fontOptions = {
 
 const params = {
     fontName: "Verdana",
-    isBold: false,
+    isBold: true,
     fontSize: 80,
-    text: "fluid",
+    text: "FRIDAY",
     pointerSize: null,
-    color: {r: 1., g: .0, b: .5}
+    colorStart: {r: 0.757, g: 1, b: 0.431},
+    colorEnd: {r: 0.357, g: 0.376, b: 1}
+    // color: {r: 1., g: .0, b: .5}
 };
 
 const pointer = {
@@ -66,11 +68,35 @@ gl.enableVertexAttribArray(0);
 function init() {
     createTextCanvasTexture();
     initFBOs();
-    createControls();
+    updateTextCanvas();
     setupEvents();
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
     render();
+
+    // 添加初始文字显示
+    gl.useProgram(splatProgram.program);
+    gl.uniform1i(splatProgram.uniforms.u_input_texture, outputColor.read().attach(1));
+    
+    // 设置初始颜色
+    const initialColor = {
+        r: params.colorStart.r,
+        g: params.colorStart.g,
+        b: params.colorStart.b
+    };
+    
+    // 在中心位置绘制一个点
+    gl.uniform1f(splatProgram.uniforms.u_ratio, canvasEl.width / canvasEl.height);
+    gl.uniform2f(splatProgram.uniforms.u_point, 0.5, 0.5);  // 在画布中心
+    gl.uniform3f(splatProgram.uniforms.u_point_value, 1. - initialColor.r, 1. - initialColor.g, 1. - initialColor.b);
+    gl.uniform1f(splatProgram.uniforms.u_point_size, params.pointerSize || 4 / window.innerHeight);
+    
+    blit(outputColor.write());
+    outputColor.swap();
+    
+    window.addEventListener("resize", resizeCanvas);
+    render();
+
 }
 
 function createTextCanvasTexture() {
@@ -187,6 +213,7 @@ function createFBO(w, h, type = gl.RGBA) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
     gl.viewport(0, 0, w, h);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);  // 添加这行，设置清除颜色为完全透明
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     return {
@@ -224,6 +251,78 @@ function createDoubleFBO(w, h, type) {
     }
 }
 
+// 在全局添加时间追踪变量
+// const moveTracker = {
+//     startTime: 0,
+//     isMoving: false,
+//     lastMoveTime: 0,
+//     RESET_DELAY: 500 // 停止移动500ms后重置
+// };
+
+// function render(t) {
+//     const dt = 1 / 60;
+
+//     if (t && isPreview) {
+//         updateMousePosition(
+//             (.5 - .45 * Math.sin(.003 * t - 2)) * window.innerWidth,
+//             (.5 + .1 * Math.sin(.0025 * t) + .1 * Math.cos(.002 * t)) * window.innerHeight
+//         );
+//     }
+
+//     if (pointer.moved) {
+//         if (!isPreview) {
+//             pointer.moved = false;
+//         }
+
+//         // 更新移动追踪
+//         const currentTime = Date.now();
+//         if (!moveTracker.isMoving) {
+//             moveTracker.startTime = currentTime;
+//             moveTracker.isMoving = true;
+//         }
+//         moveTracker.lastMoveTime = currentTime;
+
+//         gl.useProgram(splatProgram.program);
+//         gl.uniform1i(splatProgram.uniforms.u_input_texture, velocity.read().attach(1));
+//         gl.uniform1f(splatProgram.uniforms.u_ratio, canvasEl.width / canvasEl.height);
+//         gl.uniform2f(splatProgram.uniforms.u_point, pointer.x / canvasEl.width, 1 - pointer.y / canvasEl.height);
+//         gl.uniform3f(splatProgram.uniforms.u_point_value, pointer.dx, -pointer.dy, 1);
+//         gl.uniform1f(splatProgram.uniforms.u_point_size, params.pointerSize);
+//         blit(velocity.write());
+//         velocity.swap();
+
+//         gl.uniform1i(splatProgram.uniforms.u_input_texture, outputColor.read().attach(1));
+        
+//         // 计算基于移动时间的渐变因子
+//         const moveDuration = currentTime - moveTracker.startTime;
+//         const gradientFactor = Math.min(moveDuration / 2000, 1); // 2秒内完成渐变
+
+//         // 在起始颜色(绿色)和结束颜色(蓝色)之间插值
+//         const currentColor = {
+//             r: 0,
+//             g: 1 * (1 - gradientFactor), // 绿色逐渐减少
+//             b: 1 * gradientFactor        // 蓝色逐渐增加
+//         };
+
+//         // 确保 currentColor 中的最大值为 1
+//         const maxColorValue = Math.max(currentColor.r, currentColor.g, currentColor.b);
+//         if (maxColorValue > 0) {
+//             currentColor.r /= maxColorValue;
+//             currentColor.g /= maxColorValue;
+//             currentColor.b /= maxColorValue;
+//         }
+
+//         gl.uniform3f(splatProgram.uniforms.u_point_value, 1 - currentColor.r, 1 - currentColor.g, 1 - currentColor.b);
+//         blit(outputColor.write());
+//         outputColor.swap();
+//     } else {
+//         // 检查是否需要重置
+//         const currentTime = Date.now();
+//         if (moveTracker.isMoving && (currentTime - moveTracker.lastMoveTime > moveTracker.RESET_DELAY)) {
+//             moveTracker.isMoving = false;
+//         }
+//     }
+
 function render(t) {
 
     const dt = 1 / 60;
@@ -250,7 +349,29 @@ function render(t) {
         velocity.swap();
 
         gl.uniform1i(splatProgram.uniforms.u_input_texture, outputColor.read().attach(1));
-        gl.uniform3f(splatProgram.uniforms.u_point_value, 1. - params.color.r, 1. - params.color.g, 1. - params.color.b);
+        
+        // 计算基于指针Y位置的渐变因子
+        const gradientFactor = 0.5 * (1.0 + Math.sin(Math.PI * (pointer.x / canvasEl.height - 0.5)));
+
+        // 在起始颜色和结束颜色之间插值
+        const currentColor = {
+            r: params.colorStart.r * (1 - gradientFactor) + params.colorEnd.r * gradientFactor,
+            g: params.colorStart.g * (1 - gradientFactor) + params.colorEnd.g * gradientFactor,
+            b: params.colorStart.b * (1 - gradientFactor) + params.colorEnd.b * gradientFactor
+        };
+
+        // 找到最大值并将其设置为1
+        const maxColorValue = Math.max(currentColor.r, currentColor.g, currentColor.b);
+        if (maxColorValue > 0) { // 确保最大值不为0
+            currentColor.r /= maxColorValue;
+            currentColor.g /= maxColorValue;
+            currentColor.b /= maxColorValue;
+        }
+
+        gl.uniform3f(splatProgram.uniforms.u_point_value, 1. - currentColor.r, 1. - currentColor.g, 1. - currentColor.b);
+
+        // gl.uniform1i(splatProgram.uniforms.u_input_texture, outputColor.read().attach(1));
+        // gl.uniform3f(splatProgram.uniforms.u_point_value, 1. - params.color.r, 1. - params.color.g, 1. - params.color.b);
         blit(outputColor.write());
         outputColor.swap();
     }
@@ -290,6 +411,7 @@ function render(t) {
     gl.uniform1f(advectionProgram.uniforms.u_use_text, 1);
     gl.uniform2f(advectionProgram.uniforms.u_texel, outputColor.texelSizeX, outputColor.texelSizeY);
     gl.uniform1i(advectionProgram.uniforms.u_input_texture, outputColor.read().attach(2));
+    gl.uniform1f(advectionProgram.uniforms.u_dissipation, 1.0); // 添加这行
     blit(outputColor.write());
     outputColor.swap();
 
@@ -330,34 +452,6 @@ function updateMousePosition(eX, eY) {
     pointer.dy = 5 * (eY - pointer.y);
     pointer.x = eX;
     pointer.y = eY;
-}
-
-function createControls() {
-    if (typeof GUI === 'undefined') {
-        console.error('GUI library not loaded');
-        return;
-    }
-    
-    const gui = new GUI();
-    gui.close();
-    
-    gui
-        .add(params, "text")
-        .onChange(updateTextCanvas);
-    gui
-        .add(params, "fontSize", 10, 300)
-        .onChange(updateTextCanvas)
-        .name("font size, px");
-    gui
-        .add(params, "isBold")
-        .onChange(updateTextCanvas)
-        .name("bold");
-    gui
-        .add(params, "fontName", Object.keys(fontOptions))
-        .onChange(updateTextCanvas)
-        .name("font");
-    gui
-        .addColor(params, "color");
 }
 
 window.addEventListener('load', init);
