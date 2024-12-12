@@ -62,7 +62,7 @@
         void main () {
             vec2 coord = vUv - u_dt * bilerp(u_velocity_texture, vUv, u_texel).xy * u_texel;
             float text = texture2D(u_text_texture, vec2(vUv.x, 1. - vUv.y)).r;
-            float dissipation = (.96 + text * .04 * u_use_text);
+            float dissipation = (.97 + text * .03 * u_use_text);
 
             gl_FragColor = dissipation * bilerp(u_input_texture, coord, u_texel);
             gl_FragColor.a = 1.;
@@ -185,7 +185,7 @@
         void main () {
             vec3 C = texture2D(u_output_texture, vUv).rgb;
             float text = texture2D(u_text_texture, vec2(vUv.x, 1. - vUv.y)).r; 
-            gl_FragColor = vec4(vec3(1.) - C, 1.);
+            gl_FragColor = vec4(vec3(1.) - C, 0.65);
         }
     </script>
 

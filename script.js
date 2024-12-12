@@ -21,9 +21,9 @@ const params = {
     fontSize: 80,
     text: "FRIDAY",
     pointerSize: null,
-    colorStart: {r: 0.757, g: 1, b: 0.431},
-    colorEnd: {r: 0.357, g: 0.376, b: 1}
-    // color: {r: 1., g: .0, b: .5}
+    colorStart: {r: 0.357, g: 0.376, b: 1},
+    colorEnd: {r: 0.137, g: 0, b: 0.439},
+    // color: {r: 0.357, g: 0.376, b: 1}
 };
 
 const pointer = {
@@ -43,7 +43,11 @@ const interactionState = {
 let outputColor, velocity, divergence, pressure, canvasTexture;
 let isPreview = true;
 
-const gl = canvasEl.getContext("webgl");
+const gl = canvasEl.getContext("webgl", {
+    alpha: true,  // 启用alpha通道
+    premultipliedAlpha: false  // 禁用预乘alpha
+});
+
 gl.getExtension("OES_texture_float");
 
 const vertexShader = createShader(
@@ -56,6 +60,10 @@ const pressureProgram = createProgram("fragShaderPressure");
 const gradientSubtractProgram = createProgram("fragShaderGradientSubtract");
 const advectionProgram = createProgram("fragShaderAdvection");
 const outputShaderProgram = createProgram("fragShaderOutputShader");
+
+// 启用混合
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -139,16 +147,16 @@ function updateTextCanvas() {
     const img = new Image();
     img.src = 'logo.svg'; // 替换为您的 SVG 文件路径
     img.onload = () => {
-        const logoWidth = window.innerWidth * 0.75; // 80% 的视口宽度
+        const logoWidth = window.innerWidth * 0.75; // 60% 的视口宽度
         const aspectRatio = img.height / img.width; // 计算图像的宽高比
         const logoHeight = logoWidth * aspectRatio; // 根据宽高比计算高度
 
 
         const x = (textureEl.width - logoWidth) / 2; // 横向居中
-        const y = (textureEl.height - logoHeight) / 5;
+        const y = (textureEl.height - logoHeight) / 5.5;
 
         // 设置模糊效果
-        textureCtx.filter = "blur(2px)";
+        textureCtx.filter = "blur(1px)";
 
         // 绘制图像
         textureCtx.drawImage(img, x, y, logoWidth, logoHeight);
@@ -371,7 +379,7 @@ function render(t) {
         const adjustedTime = t - interactionState.previewStartTime;
         updateMousePosition(
             (.5 - .6 * Math.sin(.002 * adjustedTime - 2)) * window.innerWidth,
-            (.5 + .15 * Math.sin(.001 * adjustedTime) + .1 * Math.cos(.002 * adjustedTime)) * window.innerHeight
+            (.2 + .15 * Math.sin(.001 * adjustedTime) + .1 * Math.cos(.002 * adjustedTime)) * window.innerHeight
         );
     }
 
@@ -476,7 +484,7 @@ function render(t) {
 }
 
 function resizeCanvas() {
-    params.pointerSize = 4 / window.innerHeight;
+    params.pointerSize = 3 / window.innerHeight;
     canvasEl.width = textureEl.width = window.innerWidth;
     canvasEl.height = textureEl.height = window.innerHeight;
 	 initFBOs();
