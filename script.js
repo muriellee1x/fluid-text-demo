@@ -22,7 +22,8 @@ const params = {
     text: "FRIDAY",
     pointerSize: null,
     colorStart: {r: 0.757, g: 1, b: 0.431},
-    colorEnd: {r: 1, g: 0.376, b: 1}
+    colorEnd: {r: 0.357, g: 0.376, b: 1},
+    opacity: 0.8
     // color: {r: 1., g: .0, b: .5}
 };
 
@@ -39,7 +40,6 @@ const interactionState = {
     previewDelay: 1000, // 3秒后重启预览
     previewStartTime: 0, // 记录预览动画开始时间，用于重置动画状态
 };
-
 
 let outputColor, velocity, divergence, pressure, canvasTexture;
 let isPreview = true;
@@ -146,7 +146,7 @@ function updateTextCanvas() {
 
 
         const x = (textureEl.width - logoWidth) / 2; // 横向居中
-        const y = (textureEl.height - logoHeight) / 4;
+        const y = (textureEl.height - logoHeight) / 5;
 
         // 设置模糊效果
         textureCtx.filter = "blur(2px)";
@@ -468,10 +468,14 @@ function render(t) {
 
     gl.useProgram(outputShaderProgram.program);
     gl.uniform1i(outputShaderProgram.uniforms.u_output_texture, outputColor.read().attach(1));
+    gl.uniform1f(outputShaderProgram.uniforms.u_opacity, params.opacity);
 
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    gl.disable(gl.BLEND);
 
     requestAnimationFrame(render);
 }
