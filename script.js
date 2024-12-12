@@ -399,8 +399,8 @@ function render(t) {
 
         gl.uniform1i(splatProgram.uniforms.u_input_texture, outputColor.read().attach(1));
         
-        // 计算基于指针Y位置的渐变因子
-        const gradientFactor = 0.5 * (1.0 + Math.sin(Math.PI * (pointer.x / canvasEl.height - 0.5)));
+        // 计算基于指针x位置的渐变因子
+        const gradientFactor = 0.5 * (1.0 + Math.sin(Math.PI * (pointer.x / canvasEl.width - 0.5)));
 
         // 在起始颜色和结束颜色之间插值
         const currentColor = {
