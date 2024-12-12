@@ -22,8 +22,7 @@ const params = {
     text: "FRIDAY",
     pointerSize: null,
     colorStart: {r: 0.757, g: 1, b: 0.431},
-    colorEnd: {r: 0.357, g: 0.376, b: 1},
-    opacity: 0.8
+    colorEnd: {r: 0.357, g: 0.376, b: 1}
     // color: {r: 1., g: .0, b: .5}
 };
 
@@ -468,14 +467,10 @@ function render(t) {
 
     gl.useProgram(outputShaderProgram.program);
     gl.uniform1i(outputShaderProgram.uniforms.u_output_texture, outputColor.read().attach(1));
-    gl.uniform1f(outputShaderProgram.uniforms.u_opacity, params.opacity);
 
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    gl.disable(gl.BLEND);
 
     requestAnimationFrame(render);
 }
