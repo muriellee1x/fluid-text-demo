@@ -153,7 +153,7 @@ function updateTextCanvas() {
 
 
         const x = (textureEl.width - logoWidth) / 2; // 横向居中
-        const y = (textureEl.height - logoHeight) / 5.5;
+        const y = (textureEl.height - logoHeight) / 4;
 
         // 设置模糊效果
         textureCtx.filter = "blur(1px)";
