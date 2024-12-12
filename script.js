@@ -359,7 +359,7 @@ function createDoubleFBO(w, h, type) {
 
 function render(t) {
 
-    const dt = 1 / 120;
+    const dt = 1 / 180;
     const currentTime = Date.now();
 
     if (!isPreview && (currentTime - interactionState.lastInteractionTime > interactionState.previewDelay)) {
@@ -477,7 +477,7 @@ function render(t) {
 }
 
 function resizeCanvas() {
-    params.pointerSize = 2 / window.innerHeight;
+    params.pointerSize = 4 / window.innerHeight;
     canvasEl.width = textureEl.width = window.innerWidth;
     canvasEl.height = textureEl.height = window.innerHeight;
 	 initFBOs();
