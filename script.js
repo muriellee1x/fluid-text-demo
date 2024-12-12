@@ -22,7 +22,7 @@ const params = {
     text: "FRIDAY",
     pointerSize: null,
     colorStart: {r: 0.757, g: 1, b: 0.431},
-    colorEnd: {r: 0.357, g: 0.376, b: 1}
+    colorEnd: {r: 1, g: 0.376, b: 1}
     // color: {r: 1., g: .0, b: .5}
 };
 
@@ -144,9 +144,9 @@ function updateTextCanvas() {
         const aspectRatio = img.height / img.width; // 计算图像的宽高比
         const logoHeight = logoWidth * aspectRatio; // 根据宽高比计算高度
 
-        // 计算居中位置
+
         const x = (textureEl.width - logoWidth) / 2; // 横向居中
-        const y = (textureEl.height - logoHeight) / 2; // 纵向居中
+        const y = (textureEl.height - logoHeight) / 4;
 
         // 设置模糊效果
         textureCtx.filter = "blur(2px)";

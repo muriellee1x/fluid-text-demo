@@ -11,6 +11,16 @@ canvas {
     height: 100%;
 }
 
+.foreground {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: auto;
+    z-index: 1; /* 确保在画布上层 */
+    pointer-events: none; /* 允许点击穿透到画布 */
+}
+
 /* .lil-gui {
     --width: 450px;
     max-width: 90%;
